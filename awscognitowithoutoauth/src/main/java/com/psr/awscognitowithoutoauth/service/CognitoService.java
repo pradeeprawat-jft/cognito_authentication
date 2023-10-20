@@ -1,4 +1,6 @@
 package com.psr.awscognitowithoutoauth.service;
+import com.psr.awscognitowithoutoauth.exceptionHandler.MyAuthenticationExceptionHandler;
+import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
@@ -16,6 +18,8 @@ import java.util.Base64;
 @Service
 public class CognitoService {
     private final CognitoIdentityProviderClient cognitoClient;
+
+
     @Value("${aws.cognito.userPoolId}")
     private String userPoolId;
     @Value("${aws.cognito.clientId}")
@@ -29,7 +33,6 @@ public class CognitoService {
                 .region(Region.of(region))
                 .build();
     }
-
     public static String calculateSecretHash(String userName, String clientId, String clientSecret) {
         try {
             SecretKeySpec signingKey = new SecretKeySpec(clientSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -42,8 +45,7 @@ public class CognitoService {
             throw new RuntimeException("Error calculating secret hash", e);
         }
     }
-
-    public void signup(String username,String email, String password) {
+    public Boolean signup(String username, String email, String password) throws AuthenticationException {
         String secretHash = calculateSecretHash(username, clientId, clientSecret);
         AttributeType emailAttribute = AttributeType.builder().name("email").value(email).build();
         SignUpRequest signUpRequest = SignUpRequest.builder()
@@ -51,18 +53,35 @@ public class CognitoService {
                 .username(username)
                 .password(password)
                 .userAttributes(emailAttribute)
-                .clientMetadata(ImmutableMap.of("SECRET_HASH", secretHash))
+                .secretHash(secretHash)
                 .build();
         try {
-            cognitoClient.signUp(signUpRequest);
+           SignUpResponse response = cognitoClient.signUp(signUpRequest);
+           return response.userConfirmed();
         } catch (Exception e) {
-            throw new RuntimeException("User signup failed: " + e.getMessage());
+            throw new MyAuthenticationExceptionHandler("User signup failed: " + e.getMessage());
         }
     }
 
-    public AuthenticationResultType login(String username, String password) {
+    public CognitoIdentityProviderResponseMetadata confirmUserSignUp(String username, String confirmationCode)  {
         String secretHash = calculateSecretHash(username, clientId, clientSecret);
+        ConfirmSignUpRequest confirmSignUpRequest = ConfirmSignUpRequest.builder()
+                .clientId(clientId)
+                .username(username)
+                .confirmationCode(confirmationCode)
+                .secretHash(secretHash)
+                .build();
 
+        try {
+            ConfirmSignUpResponse confirmResponse = cognitoClient.confirmSignUp(confirmSignUpRequest);
+            return confirmResponse.responseMetadata();
+        } catch (Exception e) {
+            throw new MyAuthenticationExceptionHandler("User confirmation failed: " + e.getMessage());
+        }
+    }
+
+    public AuthenticationResultType login(String username, String password) throws AuthenticationException {
+        String secretHash = calculateSecretHash(username, clientId, clientSecret);
         InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
                 .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
                 .clientId(clientId)
@@ -71,12 +90,22 @@ public class CognitoService {
                         "PASSWORD", password,
                         "SECRET_HASH", secretHash))
                 .build();
-
         try {
             InitiateAuthResponse initiateAuthResponse = cognitoClient.initiateAuth(authRequest);
             return initiateAuthResponse.authenticationResult();
         } catch (Exception e) {
-            throw new RuntimeException("Login failed: " + e.getMessage());
+            throw new MyAuthenticationExceptionHandler("User SignIn failed: " + e.getMessage());
+        }
+    }
+
+    public void logout(String accessToken) {
+        GlobalSignOutRequest signOutRequest = GlobalSignOutRequest.builder()
+                .accessToken(accessToken)
+                .build();
+        try {
+            cognitoClient.globalSignOut(signOutRequest);
+        } catch (Exception e) {
+            throw new MyAuthenticationExceptionHandler("User logout failed: " + e.getMessage());
         }
     }
 }

@@ -36,41 +36,28 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="text-center">Login Form</h2>
+                    <h2 class="text-center">Confirmation  Code</h2>
                 </div>
                 <div class="card-body">
                     <form
                             method="post"
                             role="form"
-                            th:action="@{/login}"
+                            th:action="@{/confirm}"
                             class="form-horizontal"
                     >
                         <div class="form-group mb-3">
-                            <label class="control-label"> Email</label>
+                            <label class="control-label"> Confirmation code</label>
                             <input
                                     type="text"
                                     id="username"
-                                    name="username"
+                                    name="confirmCode"
                                     class="form-control"
-                                    placeholder="Enter email address"
+                                    placeholder="Enter Confirmation code here"
                             />
                         </div>
 
                         <div class="form-group mb-3">
-                            <label class="control-label"> Password</label>
-                            <input
-                                    type="password"
-                                    id="password"
-                                    name="password"
-                                    class="form-control"
-                                    placeholder="Enter password"
-                            />
-                        </div>
-                        <div class="form-group mb-3">
                             <button type="submit" class="btn btn-primary" >Submit</button>
-                            <span> Not registered ?
-                                <a th:href="@{/register}">Signup here</a>
-                            </span>
                         </div>
                     </form>
                 </div>

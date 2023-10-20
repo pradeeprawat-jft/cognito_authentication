@@ -1,5 +1,4 @@
 package com.psr.awscognitolearning.config;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
@@ -26,12 +24,10 @@ public class SecurityConfiguration {
     private String logoutRedirectUrl;
     @Value("${spring.security.oauth2.client.registration.cognito.client-id}")
     private String clientId;
-
     public SecurityConfiguration(
             CustomizeAuthenticationSuccessHandler customizeAuthenticationSuccessHandler) {
         this.customizeAuthenticationSuccessHandler = customizeAuthenticationSuccessHandler;
     }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request -> request.requestMatchers("/").permitAll()
@@ -46,7 +42,6 @@ public class SecurityConfiguration {
                 });
         return http.build();
     }
-
     @Bean
     public GrantedAuthoritiesMapper userAuthoritiesMapper() {
         return (authorities) -> {
