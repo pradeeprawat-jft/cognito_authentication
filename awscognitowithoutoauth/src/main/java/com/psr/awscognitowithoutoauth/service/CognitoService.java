@@ -13,13 +13,14 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Base64;
-
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 @Service
 public class CognitoService {
     private final CognitoIdentityProviderClient cognitoClient;
-
-
     @Value("${aws.cognito.userPoolId}")
     private String userPoolId;
     @Value("${aws.cognito.clientId}")
@@ -98,6 +99,26 @@ public class CognitoService {
         }
     }
 
+
+    public List<String> getUserRoles(String username) {
+        try {
+            CognitoIdentityProviderClient cognitoClient = CognitoIdentityProviderClient.builder()
+                    .region(Region.of("ap-south-1"))
+                    .build();
+            AdminListGroupsForUserRequest listGroupsRequest = AdminListGroupsForUserRequest.builder()
+                    .username(username)
+                    .userPoolId(userPoolId)
+                    .build();
+            AdminListGroupsForUserResponse listGroupsResponse = cognitoClient.adminListGroupsForUser(listGroupsRequest);
+            return listGroupsResponse.groups().stream()
+                    .map(GroupType::groupName)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
     public void logout(String accessToken) {
         GlobalSignOutRequest signOutRequest = GlobalSignOutRequest.builder()
                 .accessToken(accessToken)
@@ -109,4 +130,3 @@ public class CognitoService {
         }
     }
 }
-
